@@ -16,12 +16,9 @@
  * along with Flutter-Sound.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 
-import 'ansi_color.dart';
-import 'enum_helper.dart';
 import 'stack_trace_impl.dart';
 
 /// Logging class
@@ -32,8 +29,7 @@ class Log extends Logger {
   /// The default log level.
   static Level loggingLevel = Level.debug;
 
-  Log._internal(String currentWorkingDirectory)
-      : super(printer: MyLogPrinter(currentWorkingDirectory));
+  Log._internal(String currentWorkingDirectory) : super();
 
   ///
   void debug(String message, {dynamic error, StackTrace stackTrace}) {
@@ -63,14 +59,14 @@ class Log extends Logger {
   void color(String message, AnsiColor color,
       {dynamic error, StackTrace stackTrace}) {
     autoInit();
-    Log.i(color.apply(message), error: error, stackTrace: stackTrace);
+    Log.i(color.call(message), error: error, stackTrace: stackTrace);
   }
 
   ///
   factory Log.color(String message, AnsiColor color,
       {dynamic error, StackTrace stackTrace}) {
     autoInit();
-    _self.d(color.apply(message), error, stackTrace);
+    _self.d(color.call(message), error, stackTrace);
     return _self;
   }
 
@@ -133,91 +129,5 @@ class Log extends Logger {
           .substring(frame.sourceFile.path.lastIndexOf("/"));
       break;
     }
-  }
-}
-
-///
-class MyLogPrinter extends LogPrinter {
-  ///
-  bool colors = true;
-
-  ///
-  String currentWorkingDirectory;
-
-  ///
-  MyLogPrinter(this.currentWorkingDirectory);
-
-  @override
-  void log(LogEvent event) {
-    if (EnumHelper.getIndexOf(Level.values, Log.loggingLevel) >
-        EnumHelper.getIndexOf(Level.values, event.level)) {
-      // don't log events where the log level is set higher
-      return;
-    }
-    var formatter = DateFormat('dd HH:mm:ss.');
-    var now = DateTime.now();
-    var formattedDate = formatter.format(now) + now.millisecond.toString();
-
-    var frames = StackTraceImpl();
-    var i = 0;
-    var depth = 0;
-    for (var frame in frames.frames) {
-      i++;
-      var path2 = frame.sourceFile.path;
-      if (!path2.contains(Log._localPath) && !path2.contains("logger.dart")) {
-        depth = i - 1;
-        break;
-      }
-    }
-
-    print(color(
-        event.level,
-        "$formattedDate ${EnumHelper.getName(event.level)} "
-        "${StackTraceImpl(skipFrames: depth).formatStackTrace(methodCount: 1)} "
-        "::: ${event.message}"));
-
-    if (event.error != null) {
-      print(color(event.level, "${event.error}"));
-    }
-
-    if (event.stackTrace != null) {
-      if (event.stackTrace.runtimeType == StackTraceImpl) {
-        var st = event.stackTrace as StackTraceImpl;
-        print(color(event.level, "$st"));
-      } else {
-        print(color(event.level, "${event.stackTrace}"));
-      }
-    }
-  }
-
-  ///
-  String color(Level level, String line) {
-    var result = "";
-
-    switch (level) {
-      case Level.debug:
-        result += grey(line, level: 0.75);
-        break;
-      case Level.verbose:
-        result += grey(line, level: 0.50);
-        break;
-      case Level.info:
-        result += line;
-        break;
-      case Level.warning:
-        result += orange(line);
-        break;
-      case Level.error:
-        result += red(line);
-        break;
-      case Level.wtf:
-        result += red(line, bgcolor: AnsiColor.yellow);
-        break;
-      case Level.nothing:
-        result += line;
-        break;
-    }
-
-    return result;
   }
 }
